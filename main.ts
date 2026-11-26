@@ -10,7 +10,7 @@
 //
 // Outside the grader, MAKEFUN_OUTPUT_DIR stands in for /output.
 
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-frontend.ts';
@@ -24,10 +24,15 @@ function copyTree(from, to) {
   cpSync(from, to, { recursive: true });
 }
 
-// Start from a clean output so a stale file from an earlier run can never
-// leak into the entry.
-rmSync(outDir, { recursive: true, force: true });
+// Clear the output directory without ever removing the directory itself:
+// the grader mounts /output, so deleting it would fail outright. Only the
+// entries inside it are removed, one by one, so a stale file from an
+// earlier run can never leak into the entry. A fresh empty directory is
+// left exactly as found, ready to receive the new copy.
 mkdirSync(outDir, { recursive: true });
+for (const entry of readdirSync(outDir)) {
+  rmSync(join(outDir, entry), { recursive: true, force: true });
+}
 
 copyTree(join(repoRoot, 'app'), join(outDir, 'app'));
 copyTree(join(repoRoot, 'screenshots'), join(outDir, 'screenshots'));
